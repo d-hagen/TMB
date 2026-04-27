@@ -15,23 +15,19 @@
     h1 { font-size: 1.8rem; margin-bottom: 1rem; color: #58a6ff; }
     .container { width: 100%; max-width: 640px; }
 
-    /* ─── Tabs ─── */
-    .tabs {
-      display: flex; gap: 0; margin-bottom: 1.5rem;
-      border-bottom: 2px solid #30363d;
-    }
+    /* Tabs */
+    .tabs { display: flex; gap: 0; margin-bottom: 1.5rem; border-bottom: 2px solid #30363d; }
     .tab {
-      padding: 0.6rem 1.5rem; cursor: pointer; font-weight: 600;
-      font-size: 1rem; color: #8b949e; border-bottom: 2px solid transparent;
-      margin-bottom: -2px; transition: all 0.2s; background: none; border-top: none;
-      border-left: none; border-right: none;
+      padding: 0.6rem 1.5rem; cursor: pointer; font-weight: 600; font-size: 1rem;
+      color: #8b949e; border-bottom: 2px solid transparent; margin-bottom: -2px;
+      transition: all 0.2s; background: none; border-top: none; border-left: none; border-right: none;
     }
     .tab:hover { color: #e1e4e8; }
     .tab.active { color: #58a6ff; border-bottom-color: #58a6ff; }
     .screen { display: none; }
     .screen.active { display: block; }
 
-    /* ─── Form ─── */
+    /* Form */
     form, .find-box {
       background: #161b22; border: 1px solid #30363d; border-radius: 8px;
       padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;
@@ -49,18 +45,15 @@
     .field { display: flex; flex-direction: column; gap: 0.3rem; }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 
-
-
-    button[type="submit"], .search-btn {
+    button[type="submit"], .action-btn {
       padding: 0.7rem; background: #238636; color: #fff; border: none;
       border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer;
     }
-    button[type="submit"]:hover, .search-btn:hover { background: #2ea043; }
-    button[type="submit"]:disabled, .search-btn:disabled { background: #21262d; color: #484f58; cursor: not-allowed; }
+    button[type="submit"]:hover, .action-btn:hover { background: #2ea043; }
+    button[type="submit"]:disabled, .action-btn:disabled { background: #21262d; color: #484f58; cursor: not-allowed; }
 
     .status-msg {
-      margin-top: 0.75rem; padding: 0.6rem; border-radius: 6px;
-      font-size: 0.9rem; display: none;
+      margin-top: 0.75rem; padding: 0.6rem; border-radius: 6px; font-size: 0.9rem; display: none;
     }
     .status-msg.ok  { display: block; background: #0d2818; border: 1px solid #238636; color: #3fb950; }
     .status-msg.err { display: block; background: #2d1117; border: 1px solid #da3633; color: #f85149; }
@@ -84,13 +77,23 @@
     }
     .delete-btn:hover { background: #2d1117; }
 
-    /* Camera */
+    /* Camera & upload */
     #detectBtn {
       padding: 0.7rem; background: #1f6feb; color: #fff; border: none;
       border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; width: 100%;
     }
     #detectBtn:hover { background: #388bfd; }
     #detectBtn:disabled { background: #21262d; color: #484f58; cursor: not-allowed; }
+    .upload-btn {
+      padding: 0.7rem; background: #6e40c9; color: #fff; border: none;
+      border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer;
+      text-align: center; transition: background 0.2s;
+    }
+    .upload-btn:hover { background: #8957e5; }
+    .detect-status {
+      font-size: 0.85rem; color: #8b949e; text-align: center; min-height: 0; display: none;
+    }
+    .detect-status.active { display: block; }
     #cameraBox {
       display: none; flex-direction: column; gap: 0.75rem; align-items: center;
       background: #0d1117; border: 1px solid #30363d; border-radius: 8px;
@@ -108,9 +111,30 @@
     .pulse { animation: pulse 1.2s infinite; }
     @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-    /* (secondary colors are now text-based) */
+    /* Connected items banner */
+    .link-banner {
+      background: #0d2818; border: 1px solid #238636; border-radius: 8px;
+      padding: 1rem; display: none; flex-direction: column; gap: 0.75rem;
+    }
+    .link-banner.active { display: flex; }
+    .link-banner p { color: #3fb950; font-size: 0.95rem; }
+    .link-banner .link-actions { display: flex; gap: 0.5rem; }
+    .link-btn {
+      padding: 0.5rem 1rem; border: none; border-radius: 6px;
+      font-weight: 600; cursor: pointer; font-size: 0.9rem;
+    }
+    .link-btn-add { background: #1f6feb; color: #fff; }
+    .link-btn-add:hover { background: #388bfd; }
+    .link-btn-done { background: #30363d; color: #e1e4e8; }
+    .link-btn-done:hover { background: #484f58; }
 
-    /* ─── Find screen / chat ─── */
+    /* Connected IDs in table */
+    .conn-id {
+      display: inline-block; background: #1f6feb22; color: #58a6ff;
+      border-radius: 3px; padding: 1px 5px; font-size: 0.8rem; margin: 1px;
+    }
+
+    /* Chat */
     .chat-container {
       background: #161b22; border: 1px solid #30363d; border-radius: 8px;
       display: flex; flex-direction: column; height: 520px;
@@ -132,15 +156,12 @@
       border-bottom-left-radius: 4px;
     }
     .chat-msg.thinking {
-      align-self: flex-start; background: #21262d; color: #8b949e;
-      font-style: italic;
+      align-self: flex-start; background: #21262d; color: #8b949e; font-style: italic;
     }
     .chat-input-row {
       display: flex; gap: 0.5rem; padding: 0.75rem; border-top: 1px solid #30363d;
     }
-    .chat-input-row input {
-      flex: 1; border-radius: 20px; padding: 0.5rem 1rem;
-    }
+    .chat-input-row input { flex: 1; border-radius: 20px; padding: 0.5rem 1rem; }
     .chat-send {
       background: #1f6feb; color: #fff; border: none; border-radius: 20px;
       padding: 0.5rem 1.2rem; font-weight: 600; cursor: pointer; font-size: 0.9rem;
@@ -166,8 +187,24 @@
 
     <!-- ═══════ CATALOG SCREEN ═══════ -->
     <div id="catalogScreen" class="screen active">
+      <!-- Link banner (shown after saving an item) -->
+      <div class="link-banner" id="linkBanner">
+        <p id="linkMsg">Item saved! Want to add connected items (e.g. items inside a bag)?</p>
+        <div class="link-actions">
+          <button class="link-btn link-btn-add" id="linkAddBtn">Add Connected Item</button>
+          <button class="link-btn link-btn-done" id="linkDoneBtn">Done</button>
+        </div>
+      </div>
+
       <form id="entryForm">
-        <button type="button" id="detectBtn">Detect Item (Camera)</button>
+        <div class="row">
+          <button type="button" id="detectBtn">Detect (Camera)</button>
+          <label class="upload-btn">
+            Upload Photo
+            <input type="file" id="uploadInput" accept="image/*" hidden>
+          </label>
+        </div>
+        <div id="uploadStatus" class="detect-status"></div>
         <div id="cameraBox">
           <video id="cameraVideo" autoplay playsinline></video>
           <canvas id="cameraCanvas"></canvas>
@@ -177,7 +214,7 @@
 
         <div class="field">
           <label for="station">Station</label>
-          <input type="text" id="station" name="station" placeholder="e.g. Station Alpha" required>
+          <input type="text" id="station" name="station" placeholder="e.g. L4, N12" required>
         </div>
 
         <div class="field">
@@ -188,7 +225,7 @@
         <div class="row">
           <div class="field">
             <label for="main_color">Main Color</label>
-            <input type="text" id="main_color" name="main_color" placeholder="e.g. black, dark blue, rose">
+            <input type="text" id="main_color" name="main_color" placeholder="e.g. black, dark blue">
           </div>
           <div class="field">
             <label for="secondary_colors">Secondary Colors</label>
@@ -196,14 +233,9 @@
           </div>
         </div>
 
-        <div class="field">
-          <label for="connected_items">Additional Connected Items</label>
-          <textarea id="connected_items" name="connected_items" rows="2" placeholder="e.g. Keychain, lanyard"></textarea>
-        </div>
-
         <div class="row">
           <div class="field">
-            <label for="perks">Perks / Distinguishing Features</label>
+            <label for="perks">Perks / Features</label>
             <input type="text" id="perks" name="perks" placeholder="e.g. Nike logo, scuffed">
           </div>
           <div class="field">
@@ -212,7 +244,7 @@
           </div>
         </div>
 
-        <button type="submit">Add Entry</button>
+        <button type="submit" id="submitBtn">Add Entry</button>
         <div id="status" class="status-msg"></div>
       </form>
 
@@ -250,6 +282,16 @@
     const form = document.getElementById('entryForm');
     const status = document.getElementById('status');
     const entriesDiv = document.getElementById('entries');
+    const linkBanner = document.getElementById('linkBanner');
+    const linkMsg = document.getElementById('linkMsg');
+    const linkAddBtn = document.getElementById('linkAddBtn');
+    const linkDoneBtn = document.getElementById('linkDoneBtn');
+    const submitBtn = document.getElementById('submitBtn');
+
+    let linkToId = null;       // ID of parent item we're linking to
+    let lastSavedId = null;    // ID of last saved item
+    let lastStation = '';
+    let lastTime = '';
 
     function setTimeNow() {
       const now = new Date();
@@ -264,6 +306,32 @@
       setTimeout(() => { el.className = 'status-msg'; }, 4000);
     }
 
+    // ─── Connected Items Workflow ─────────────────────────────
+    function showLinkBanner(parentId) {
+      lastSavedId = parentId;
+      linkMsg.textContent = `Item #${parentId} saved! Add connected items (e.g. items found inside)?`;
+      linkBanner.classList.add('active');
+    }
+
+    function hideLinkBanner() {
+      linkBanner.classList.remove('active');
+      linkToId = null;
+      lastSavedId = null;
+      submitBtn.textContent = 'Add Entry';
+    }
+
+    linkAddBtn.addEventListener('click', () => {
+      // Start adding a connected item — keep station & time, clear the rest
+      linkToId = lastSavedId;
+      linkBanner.classList.remove('active');
+      form.reset();
+      document.getElementById('station').value = lastStation;
+      document.getElementById('time').value = lastTime;
+      submitBtn.textContent = `Add Connected Item (to #${linkToId})`;
+    });
+
+    linkDoneBtn.addEventListener('click', hideLinkBanner);
+
     // ─── Camera & Detection ───────────────────────────────────
     const detectBtn = document.getElementById('detectBtn');
     const cameraBox = document.getElementById('cameraBox');
@@ -272,6 +340,13 @@
     const captureBtn = document.getElementById('captureBtn');
     const detectStatus = document.getElementById('detectStatus');
     let stream = null;
+
+    function fillFromDetection(data) {
+      if (data.item_type) document.getElementById('item_type').value = data.item_type;
+      if (data.main_color) document.getElementById('main_color').value = data.main_color;
+      if (data.secondary_colors) document.getElementById('secondary_colors').value = data.secondary_colors;
+      if (data.perks) document.getElementById('perks').value = data.perks;
+    }
 
     detectBtn.addEventListener('click', async () => {
       if (stream) { stopCamera(); return; }
@@ -290,7 +365,7 @@
       if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
       video.srcObject = null;
       cameraBox.classList.remove('active');
-      detectBtn.textContent = 'Detect Item (Camera)';
+      detectBtn.textContent = 'Detect (Camera)';
       detectStatus.textContent = '';
     }
 
@@ -313,23 +388,53 @@
         const data = await res.json();
         if (data.error) {
           detectStatus.textContent = 'Error: ' + data.error;
-          detectStatus.classList.remove('pulse');
-          captureBtn.disabled = false;
-          return;
+        } else {
+          fillFromDetection(data);
+          detectStatus.textContent = 'Detected! Fields auto-filled.';
+          stopCamera();
         }
-        if (data.item_type) document.getElementById('item_type').value = data.item_type;
-        if (data.main_color) document.getElementById('main_color').value = data.main_color;
-        if (data.secondary_colors) document.getElementById('secondary_colors').value = data.secondary_colors;
-        if (data.connected_items) document.getElementById('connected_items').value = data.connected_items;
-        if (data.perks) document.getElementById('perks').value = data.perks;
-        detectStatus.textContent = 'Detected! Fields auto-filled.';
         detectStatus.classList.remove('pulse');
-        stopCamera();
       } catch {
         detectStatus.textContent = 'Failed to reach detection server.';
         detectStatus.classList.remove('pulse');
       }
       captureBtn.disabled = false;
+    });
+
+    // ─── Upload Photo ─────────────────────────────────────────
+    const uploadInput = document.getElementById('uploadInput');
+    const uploadStatus = document.getElementById('uploadStatus');
+
+    uploadInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      uploadStatus.textContent = 'Analyzing image...';
+      uploadStatus.className = 'detect-status active pulse';
+
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = reader.result.split(',')[1];
+        try {
+          const res = await fetch('/api/detect', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: base64 }),
+          });
+          const data = await res.json();
+          if (data.error) {
+            uploadStatus.textContent = 'Error: ' + data.error;
+          } else {
+            fillFromDetection(data);
+            uploadStatus.textContent = 'Detected! Fields auto-filled.';
+          }
+          uploadStatus.classList.remove('pulse');
+        } catch {
+          uploadStatus.textContent = 'Failed to reach detection server.';
+          uploadStatus.classList.remove('pulse');
+        }
+      };
+      reader.readAsDataURL(file);
+      uploadInput.value = '';
     });
 
     // ─── Entries CRUD ─────────────────────────────────────────
@@ -343,16 +448,21 @@
         }
         let html = `<table>
           <thead><tr>
-            <th>Station</th><th>Item</th><th>Colors</th>
+            <th>ID</th><th>Station</th><th>Item</th><th>Colors</th>
             <th>Connected</th><th>Perks</th><th>Time</th><th></th>
           </tr></thead><tbody>`;
         for (const e of data) {
           const colors = [e.main_color, e.secondary_colors].filter(Boolean).join(', ');
+          const connIds = (e.connected_items || '').split(',').filter(x => x.trim());
+          const connHtml = connIds.length
+            ? connIds.map(id => `<span class="conn-id">#${esc(id.trim())}</span>`).join(' ')
+            : '';
           html += `<tr>
+            <td>#${e.id}</td>
             <td>${esc(e.station)}</td>
             <td>${esc(e.item_type)}</td>
             <td>${esc(colors)}</td>
-            <td>${esc(e.connected_items)}</td>
+            <td>${connHtml}</td>
             <td>${esc(e.perks)}</td>
             <td>${esc(e.time)}</td>
             <td><button class="delete-btn" onclick="deleteEntry(${e.id})">x</button></td>
@@ -368,6 +478,10 @@
     form.addEventListener('submit', async (ev) => {
       ev.preventDefault();
       const body = Object.fromEntries(new FormData(form));
+      if (linkToId) body.link_to = linkToId;
+      // Remember station & time for connected items
+      lastStation = body.station;
+      lastTime = body.time;
       try {
         const res = await fetch('/api/entries', {
           method: 'POST',
@@ -375,10 +489,17 @@
           body: JSON.stringify(body),
         });
         if (!res.ok) throw new Error();
-        showStatus(status, 'Entry added.', true);
+        const result = await res.json();
+        const newId = result.id;
+        const wasLinked = !!linkToId;
+        showStatus(status, wasLinked ? `Connected item #${newId} added (linked to #${linkToId}).` : `Entry #${newId} added.`, true);
         form.reset();
         setTimeNow();
         loadEntries();
+        // Show link banner for the group parent
+        showLinkBanner(wasLinked ? linkToId : newId);
+        linkToId = null;
+        submitBtn.textContent = 'Add Entry';
       } catch { showStatus(status, 'Failed to add entry.', false); }
     });
 
@@ -426,17 +547,21 @@
         addChatMsg(reply, 'assistant');
         conversation.push({ role: 'assistant', text: reply });
 
-        // Show matched entries if found
         findMatches.innerHTML = '';
         if (data.matches && data.matches.length) {
-          let html = '<h2>Your Item</h2><table><thead><tr>' +
-            '<th>Station</th><th>Item</th><th>Colors</th><th>Connected</th><th>Perks</th><th>Time</th>' +
+          let html = '<h2>Your Item(s)</h2><table><thead><tr>' +
+            '<th>ID</th><th>Station</th><th>Item</th><th>Colors</th><th>Connected</th><th>Perks</th><th>Time</th>' +
             '</tr></thead><tbody>';
           for (const e of data.matches) {
             const colors = [e.main_color, e.secondary_colors].filter(Boolean).join(', ');
+            const connIds = (e.connected_items || '').split(',').filter(x => x.trim());
+            const connHtml = connIds.length
+              ? connIds.map(id => `<span class="conn-id">#${esc(id.trim())}</span>`).join(' ')
+              : '';
             html += `<tr>
+              <td>#${e.id}</td>
               <td>${esc(e.station)}</td><td>${esc(e.item_type)}</td><td>${esc(colors)}</td>
-              <td>${esc(e.connected_items)}</td><td>${esc(e.perks)}</td><td>${esc(e.time)}</td>
+              <td>${connHtml}</td><td>${esc(e.perks)}</td><td>${esc(e.time)}</td>
             </tr>`;
           }
           html += '</tbody></table>';
