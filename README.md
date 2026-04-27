@@ -115,7 +115,34 @@ claims (
 )
 ```
 
-#### 2.3 Deliverables
+#### 2.3 Replace Local LLM/VLM with Cloud API
+
+Phase 1 relies on Ollama running locally (llava + llama3.2). In Phase 2 this gets replaced with cloud API calls, removing the need for local GPU hardware entirely.
+
+**Vision (item detection):**
+- Replace Ollama llava calls with **Claude API** (claude-sonnet-4-5 supports vision) or **OpenAI GPT-4o**
+- Send the base64 image + the same detection prompt via REST API
+- Faster, more accurate, no local model download needed
+- Cost: ~$0.01–0.03 per image analysis
+
+**Text LLM (Find chatbot + staff search):**
+- Replace Ollama llama3.2 calls with **Claude API** (claude-sonnet-4-5 or claude-haiku-4-5 for lower cost) or **OpenAI GPT-4o-mini**
+- Same prompt structure, just swap the HTTP endpoint and payload format
+- Haiku/GPT-4o-mini for passenger chatbot (cheap, fast), Sonnet/GPT-4o for staff search (smarter matching)
+- Cost: ~$0.002–0.01 per conversation turn
+
+**Implementation:**
+- Abstract the LLM calls behind a provider interface (swap between Ollama / Claude / OpenAI via config)
+- API keys stored as environment variables, never in code
+- Add retry logic and timeouts for cloud API calls
+- Optional: keep Ollama as offline fallback
+
+**Cost estimate at scale (80k entries/year, ~200 lookups/day):**
+- Vision (50 new items/day): ~$30–45/month
+- Text LLM (200 lookups/day, ~3 turns each): ~$20–40/month
+- **Total LLM API cost: ~$50–85/month** — significantly cheaper than a GPU instance ($350–500/month)
+
+#### 2.4 Deliverables
 
 - [ ] FastAPI backend with auth, deployed to cloud
 - [ ] PostgreSQL database with migrations
@@ -213,18 +240,85 @@ For the public. Privacy-preserving, no database browsing.
 
 ---
 
+### Phase 4 — QR Code Physical Labeling
+
+Every cataloged item gets a printed QR code label. Enables instant lookup, staff editing, and bridges physical items to digital records.
+
+#### 4.1 Workflow
+
+```
+Staff scans item → VLM detects → staff confirms & saves
+        │
+        ▼
+  Entry created (ID #247)
+        │
+        ▼
+  QR code auto-generated (encodes URL: app.example.com/item/247)
+        │
+        ▼
+  Sent to connected QR label printer (Bluetooth/USB thermal printer)
+        │
+        ▼
+  Label attached to item or storage bag
+```
+
+#### 4.2 QR Code Behavior
+
+**When staff scans the QR code:**
+- Opens the full entry in the Staff App — editable
+- Can update status (available / claimed / expired), add notes, modify fields
+- See connected items, claim history, and photo
+
+**When a passenger/anyone scans the QR code:**
+- Opens a read-only view with limited info: item type, station, date found, status
+- If the item is theirs: button to start a claim (links to Passenger App claim form, pre-filled with the entry ID)
+- No sensitive details exposed (no perks, no exact description — just enough to recognize their item)
+
+**When staff re-encounters the item later:**
+- Scan QR instead of searching the database manually
+- Quickly mark as claimed, transfer to another station, or flag as expired
+
+#### 4.3 QR Code Generation
+
+- Generate QR as SVG/PNG on the backend when an entry is created
+- Library: `qrcode` (Python) or `qrcodejs` (frontend)
+- Encode a short URL: `https://app.example.com/i/{entry_id}` or `https://app.example.com/i/{short_hash}`
+- Short hash option avoids exposing sequential IDs
+
+#### 4.4 Printer Integration
+
+- **Thermal label printers** (e.g. Brother QL-series, DYMO, Zebra) — common in logistics
+- Connect via:
+  - **Bluetooth** — mobile staff app sends print job directly
+  - **USB** — desktop staff app prints via system print dialog
+  - **Network** — shared printer at the station, API sends print job
+- Print format: QR code + human-readable text below (item type, ID, date, station)
+- Label size: standard 62mm or 29mm thermal labels
+
+#### 4.5 Deliverables
+
+- [ ] QR code auto-generated on entry creation
+- [ ] Print button in Staff App — sends to connected label printer
+- [ ] Staff scan: opens editable entry view
+- [ ] Public scan: opens limited read-only view + claim button
+- [ ] Printer pairing settings in Staff App (Bluetooth/USB/network)
+- [ ] Batch print option for labeling a backlog of items
+
+---
+
 ## Tech Stack Summary
 
-| Component | Phase 1 (Local) | Phase 2 (Online) | Phase 3 (Split Apps) |
-|-----------|-----------------|-------------------|----------------------|
-| Frontend | HTML/JS | HTML/JS | Staff: Tauri/Capacitor, Passenger: Capacitor/PWA |
-| Backend | Python http.server | FastAPI | FastAPI + WebSockets |
-| Database | SQLite | PostgreSQL | PostgreSQL |
-| Images | On disk | S3 | S3 |
-| Vision LLM | Ollama (llava) | Ollama or Cloud API | Cloud API |
-| Text LLM | Ollama (llama3.2) | Ollama or Cloud API | Cloud API |
-| Auth | None | API keys | API keys (staff) + anonymous (passenger) |
-| Deployment | Local | AWS / Railway / Fly.io | Same + app stores |
+| Component | Phase 1 (Local) | Phase 2 (Online) | Phase 3 (Split Apps) | Phase 4 (QR Labels) |
+|-----------|-----------------|-------------------|----------------------|---------------------|
+| Frontend | HTML/JS | HTML/JS | Staff: Tauri/Capacitor, Passenger: Capacitor/PWA | Same + scan views |
+| Backend | Python http.server | FastAPI | FastAPI + WebSockets | + QR generation endpoint |
+| Database | SQLite | PostgreSQL | PostgreSQL | + short URL hashes |
+| Images | On disk | S3 | S3 | S3 |
+| Vision LLM | Ollama (llava) | Cloud API | Cloud API | Cloud API |
+| Text LLM | Ollama (llama3.2) | Cloud API | Cloud API | Cloud API |
+| Auth | None | API keys | API keys (staff) + anonymous (passenger) | + public scan tokens |
+| Hardware | — | — | — | Thermal label printer |
+| Deployment | Local | AWS / Railway / Fly.io | Same + app stores | Same |
 
 ---
 
