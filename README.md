@@ -1,50 +1,78 @@
 # TMB Lost & Found — AI-Powered Lost Item Tracker
 
-A lost-and-found system for public transport companies. Staff photograph found items, a local VLM (vision-language model) auto-describes them, and passengers retrieve items via an LLM chatbot that verifies ownership without leaking database contents.
+A lost-and-found system for public transport companies. Staff photograph found items, a VLM (vision-language model) auto-describes them, and passengers retrieve items via an LLM chatbot that verifies ownership without leaking database contents.
 
-**Current state:** Web-based prototype running on localhost with SQLite + Ollama (llava for vision, llama3.2 for text).
+**Current state:** Phase 1 prototype — Staff App running on localhost with SQLite + Ollama.
 
 ---
 
 ## Roadmap
 
-### Phase 1 — Local Demo (Standalone App)
+### Phase 1 — Staff App (Local)
 
-Single-user desktop/mobile app. No server, no internet required. SQLite on device, Ollama running locally.
+Desktop/mobile app for lost-and-found workers. Runs fully offline — local database, local LLM. This is the foundation everything else builds on.
 
-#### 1.1 Package as Desktop App
+#### 1.1 Screens
 
-- Wrap the existing Python server + HTML frontend using **Tauri** (Rust-based, lightweight) or **Electron**
-- Tauri preferred: smaller binary (~5 MB vs ~150 MB), native webview, no bundled Chromium
-- App starts the Python backend as a child process, opens the UI in a native window
-- Alternative: **PyWebView** — pure Python, opens a native webview window, minimal packaging overhead
-- Bundle Ollama or require it as a system dependency
+**Add Item (Catalog)**
+- Camera detect / photo upload — VLM (Ollama llava) auto-fills item type, colors, features
+- Connected items workflow: scan a bag, then its contents — items auto-link by ID bidirectionally
+- Manual field editing before save
+- Fields: station, item type, main color, secondary colors, perks, time
 
-#### 1.2 Package as Mobile App
+**LLM Search (Unredacted)**
+- Chat interface with full database visibility — no privacy restrictions
+- Returns ALL matching or near-matching entries with full details
+- Helps staff narrow down: "Show me all black cameras from this week"
+- Explains reasoning: "This matches because: same item type, similar color, same station"
+- Searches across connected item groups
 
-- Use **Capacitor** (from Ionic) to wrap the existing HTML/JS frontend into a native iOS/Android shell
-- Capacitor gives native access to camera, file system, notifications
-- Backend options for mobile:
-  - **On-device:** Bundle a lightweight ONNX/TFLite vision model for item detection (no Ollama needed). Text LLM via on-device inference (e.g. llama.cpp built for ARM)
-  - **Hybrid:** Item detection on-device, LLM search calls a local network server or cloud endpoint
-- SQLite works natively on both iOS and Android
+**Manual Search**
+- Filter/search table with one input per column:
+  - Station (dropdown or text)
+  - Item type (text, fuzzy)
+  - Main color / secondary colors (text)
+  - Perks/features (text)
+  - Date range (from/to pickers)
+  - Status (available / claimed / expired)
+  - Connected items (search within groups)
+- Columns are combinable — e.g. station "L4" + color "black" + date range
+- Results table with sorting, pagination
+- Click an entry to see full details + connected items
+
+**Entries Table**
+- All items listed with ID, station, type, colors, connections, perks, time
+- Inline delete, edit on click
+
+#### 1.2 Tech Stack
+
+| Component | Choice |
+|-----------|--------|
+| Frontend | HTML/JS (single-page app) |
+| Backend | Python `http.server` (stdlib, zero dependencies) |
+| Database | SQLite (local file) |
+| Vision LLM | Ollama llava (local) |
+| Text LLM | Ollama llama3.2 (local) |
+| Auth | None (single user) |
+| Packaging | Tauri (desktop) or Capacitor (mobile) |
 
 #### 1.3 Deliverables
 
-- [ ] Standalone `.dmg` / `.exe` / `.AppImage` for desktop
-- [ ] iOS TestFlight / Android APK for mobile testing
-- [ ] Local SQLite database, no network required
-- [ ] Camera capture + photo upload for item detection
-- [ ] Connected items workflow (scan multiple items, auto-link by ID)
-- [ ] LLM chatbot for item search (runs locally)
+- [x] Camera capture + photo upload with VLM auto-detection
+- [x] Connected items workflow (scan multiple items, auto-link by ID)
+- [x] LLM chatbot search (currently privacy-preserving — will become unredacted staff version)
+- [ ] Manual search / filter page
+- [ ] Entry detail view with edit capability
+- [ ] Package as standalone desktop app (Tauri / PyWebView)
+- [ ] Package as mobile app (Capacitor)
 
 ---
 
-### Phase 2 — Online Database (Multi-User)
+### Phase 2 — Cloud Database & Cloud LLM (Multi-User)
 
-Shared cloud database accessible from multiple devices. Multiple staff can add items, multiple passengers can search.
+Move from local SQLite + Ollama to shared cloud infrastructure. Multiple staff at different stations can access and modify the same database simultaneously.
 
-#### 2.1 Backend Architecture
+#### 2.1 Architecture
 
 ```
                   ┌─────────────┐
@@ -54,28 +82,27 @@ Shared cloud database accessible from multiple devices. Multiple staff can add i
                          │
               ┌──────────┼──────────┐
               │          │          │
-         ┌────┴────┐ ┌──┴───┐ ┌───┴────┐
-         │ REST API │ │  S3  │ │ Ollama │
-         │ FastAPI  │ │Images│ │ or API │
-         └────┬────┘ └──────┘ └────────┘
-              │
+         ┌────┴────┐ ┌──┴───┐ ┌───┴─────┐
+         │ REST API │ │  S3  │ │Cloud LLM│
+         │ FastAPI  │ │Images│ │Claude/  │
+         └────┬────┘ └──────┘ │GPT API  │
+              │               └─────────┘
      ┌────────┼────────┐
      │        │        │
-  Staff    Staff    Passenger
-  App #1   App #2    App
+  Staff    Staff    Staff
+  App #1   App #2   App #3
 ```
 
-- **Database:** PostgreSQL on AWS RDS / Supabase / Railway
-- **Image storage:** S3 bucket (or Supabase Storage)
-- **API server:** FastAPI (Python) — replaces the current `http.server`
-  - Auth via API keys (staff) and anonymous/session-based (passengers)
-  - Rate limiting on LLM endpoints
-- **LLM inference:**
-  - Option A: Self-hosted Ollama on a GPU instance (g4dn.xlarge)
-  - Option B: Cloud API (Claude / GPT) — simpler, pay-per-use
-  - Option C: Hybrid — vision model self-hosted, text LLM via cloud API
+#### 2.2 Backend Migration
 
-#### 2.2 Data Model (PostgreSQL)
+- **Database:** PostgreSQL on AWS RDS / Supabase / Railway
+- **Image storage:** S3 bucket (photos saved alongside entries)
+- **API server:** FastAPI (Python) — replaces `http.server`
+  - Auth via API keys per staff member
+  - Rate limiting on LLM endpoints
+- **Conflict handling:** Optimistic locking for simultaneous edits
+
+#### 2.3 Data Model (PostgreSQL)
 
 ```sql
 entries (
@@ -115,110 +142,58 @@ claims (
 )
 ```
 
-#### 2.3 Replace Local LLM/VLM with Cloud API
+#### 2.4 Replace Local LLM/VLM with Cloud API
 
-Phase 1 relies on Ollama running locally (llava + llama3.2). In Phase 2 this gets replaced with cloud API calls, removing the need for local GPU hardware entirely.
+Remove the Ollama dependency entirely. Staff apps no longer need local GPU hardware.
 
 **Vision (item detection):**
-- Replace Ollama llava calls with **Claude API** (claude-sonnet-4-5 supports vision) or **OpenAI GPT-4o**
-- Send the base64 image + the same detection prompt via REST API
-- Faster, more accurate, no local model download needed
+- Replace Ollama llava with **Claude API** (claude-sonnet-4-5 supports vision) or **OpenAI GPT-4o**
+- Send base64 image + detection prompt via REST API
+- Faster, more accurate, no local model download
 - Cost: ~$0.01–0.03 per image analysis
 
-**Text LLM (Find chatbot + staff search):**
-- Replace Ollama llama3.2 calls with **Claude API** (claude-sonnet-4-5 or claude-haiku-4-5 for lower cost) or **OpenAI GPT-4o-mini**
-- Same prompt structure, just swap the HTTP endpoint and payload format
-- Haiku/GPT-4o-mini for passenger chatbot (cheap, fast), Sonnet/GPT-4o for staff search (smarter matching)
+**Text LLM (staff search + passenger chatbot):**
+- Replace Ollama llama3.2 with **Claude API** (claude-sonnet-4-5 or claude-haiku-4-5) or **OpenAI GPT-4o-mini**
+- Same prompt structure, swap the HTTP endpoint and payload format
+- Sonnet/GPT-4o for staff search (smarter), Haiku/GPT-4o-mini for passenger chatbot (cheaper)
 - Cost: ~$0.002–0.01 per conversation turn
 
 **Implementation:**
-- Abstract the LLM calls behind a provider interface (swap between Ollama / Claude / OpenAI via config)
-- API keys stored as environment variables, never in code
-- Add retry logic and timeouts for cloud API calls
+- Abstract LLM calls behind a provider interface (swap Ollama / Claude / OpenAI via config)
+- API keys stored as environment variables
+- Retry logic and timeouts for cloud calls
 - Optional: keep Ollama as offline fallback
 
 **Cost estimate at scale (80k entries/year, ~200 lookups/day):**
 - Vision (50 new items/day): ~$30–45/month
 - Text LLM (200 lookups/day, ~3 turns each): ~$20–40/month
-- **Total LLM API cost: ~$50–85/month** — significantly cheaper than a GPU instance ($350–500/month)
+- **Total LLM API cost: ~$50–85/month** — far cheaper than a GPU instance ($350–500/month)
 
-#### 2.4 Deliverables
+#### 2.5 Deliverables
 
-- [ ] FastAPI backend with auth, deployed to cloud
+- [ ] FastAPI backend with staff auth, deployed to cloud
 - [ ] PostgreSQL database with migrations
 - [ ] S3 image storage
-- [ ] Multi-user access — multiple staff adding items simultaneously
-- [ ] Claim tracking — passengers submit claims, staff approve/reject
+- [ ] Cloud LLM provider integration (Claude or OpenAI)
+- [ ] Multi-user access — multiple staff adding/editing items simultaneously
 - [ ] Admin dashboard for managing staff accounts
 
 ---
 
-### Phase 3 — Two Separate Applications
+### Phase 3 — Passenger Web App
 
-Split into **Staff App** (for transport workers) and **Passenger App** (for the public).
+Public-facing **web application** (not a native app — accessible from any browser, no install required). Passengers use this to find their lost items.
 
----
+#### 3.1 Screens
 
-#### 3A — Staff App
-
-For public transport lost-and-found workers. Full access to the database.
-
-##### Screens
-
-**1. Add Item (existing catalog screen)**
-- Camera detect / photo upload with VLM auto-fill
-- Connected items workflow (scan bag, then contents, auto-link)
-- Manual field editing before save
-- Station auto-filled from staff profile
-
-**2. LLM Search (unredacted)**
-- Same chat interface but with NO privacy restrictions
-- Returns ALL matching or near-matching entries with full details
-- Helps staff narrow down: "Show me all black cameras from this week"
-- Shows confidence scores and explains why items match or don't
-- Can search across connected item groups
-
-**3. Manual Search**
-- Filter/search table with one input per column:
-  - Station (dropdown or text)
-  - Item type (text, fuzzy)
-  - Main color (text)
-  - Secondary colors (text)
-  - Perks/features (text)
-  - Date range (from/to date pickers)
-  - Status (available / claimed / expired)
-  - Connected items (search within groups)
-- Columns are combinable — e.g. station "L4" + color "black" + date range
-- Results table with sorting, pagination
-- Click an entry to see full details + connected items + claim history
-
-**4. Claims Queue**
-- List of passenger claims awaiting review
-- Side-by-side: passenger's description vs. matched DB entry
-- Approve / reject / request more info
-
-##### Staff LLM Prompt Behavior
-- Full database visibility, no redaction
-- Returns multiple candidates ranked by match quality
-- Explains reasoning: "This matches because: same item type, similar color, same station, time within 2 hours"
-- Can handle staff queries like "show me everything from L4 today" or "any cameras this week?"
-
----
-
-#### 3B — Passenger App
-
-For the public. Privacy-preserving, no database browsing.
-
-##### Screens
-
-**1. Find My Item (LLM Chatbot)**
-- Current chat interface with privacy-preserving LLM
+**Find My Item (LLM Chatbot)**
+- Chat interface with privacy-preserving LLM
 - Strict matching rules — must describe item accurately enough
 - Never reveals database contents
-- On match: shows the item entry + station to collect from
+- On match: shows item type, station to collect from, and status
 - On no match: offers to submit a claim/alert
 
-**2. Submit a Request (Claim Form)**
+**Submit a Request (Claim Form)**
 - Structured form as alternative to chatbot:
   - Item type
   - Main color / secondary colors
@@ -226,10 +201,11 @@ For the public. Privacy-preserving, no database browsing.
   - Where lost (station/line)
   - Distinguishing features
   - Contact info (email / phone)
-- Submitted as a claim — staff reviews and responds
+- Submitted as a claim — staff reviews via Claims Queue in Staff App
 - Passenger gets a claim reference number
+- Can check claim status by reference number
 
-**3. Info Page**
+**Info Page**
 - How the system works (brief explanation)
 - Which stations participate
 - What to do if your item isn't found
@@ -238,11 +214,40 @@ For the public. Privacy-preserving, no database browsing.
 - FAQ (how long are items kept, what items are accepted, etc.)
 - Privacy policy — what data is stored, how long, who can see it
 
+#### 3.2 Staff App Additions (Claims Queue)
+
+When the passenger app goes live, the Staff App gets a new screen:
+
+**Claims Queue**
+- List of passenger claims awaiting review
+- Side-by-side: passenger's description vs. matched DB entry
+- Approve / reject / request more info
+- Notify passenger of outcome (email / SMS)
+
+#### 3.3 Tech Stack
+
+| Component | Choice |
+|-----------|--------|
+| Frontend | Responsive web app (HTML/JS or lightweight framework) |
+| Hosting | Static site on Vercel / Netlify / S3+CloudFront |
+| Backend | Same FastAPI from Phase 2 |
+| Auth | Anonymous / session-based (no login required) |
+| LLM | Cloud API (Haiku/GPT-4o-mini for cost efficiency) |
+
+#### 3.4 Deliverables
+
+- [ ] Passenger web app — responsive, mobile-friendly, no install
+- [ ] LLM chatbot with privacy-preserving matching
+- [ ] Claim submission form with reference number tracking
+- [ ] Info / FAQ page
+- [ ] Claims Queue screen added to Staff App
+- [ ] Notification system for claim updates (email / SMS)
+
 ---
 
 ### Phase 4 — QR Code Physical Labeling
 
-Every cataloged item gets a printed QR code label. Enables instant lookup, staff editing, and bridges physical items to digital records.
+Every cataloged item gets a printed QR code label. Bridges physical items to digital records. Enables instant lookup and status updates.
 
 #### 4.1 Workflow
 
@@ -253,7 +258,7 @@ Staff scans item → VLM detects → staff confirms & saves
   Entry created (ID #247)
         │
         ▼
-  QR code auto-generated (encodes URL: app.example.com/item/247)
+  QR code auto-generated (encodes URL: app.example.com/i/247)
         │
         ▼
   Sent to connected QR label printer (Bluetooth/USB thermal printer)
@@ -264,35 +269,36 @@ Staff scans item → VLM detects → staff confirms & saves
 
 #### 4.2 QR Code Behavior
 
-**When staff scans the QR code:**
-- Opens the full entry in the Staff App — editable
+**Staff scans QR code:**
+- Opens the full entry in Staff App — editable
 - Can update status (available / claimed / expired), add notes, modify fields
 - See connected items, claim history, and photo
 
-**When a passenger/anyone scans the QR code:**
-- Opens a read-only view with limited info: item type, station, date found, status
-- If the item is theirs: button to start a claim (links to Passenger App claim form, pre-filled with the entry ID)
-- No sensitive details exposed (no perks, no exact description — just enough to recognize their item)
+**Passenger scans QR code:**
+- Opens a read-only view on the Passenger Web App
+- Shows limited info: item type, station, date found, status
+- "This is mine" button → opens claim form pre-filled with entry ID
+- No sensitive details exposed
 
-**When staff re-encounters the item later:**
-- Scan QR instead of searching the database manually
+**Staff re-encounters item later:**
+- Scan QR instead of searching the database
 - Quickly mark as claimed, transfer to another station, or flag as expired
 
 #### 4.3 QR Code Generation
 
 - Generate QR as SVG/PNG on the backend when an entry is created
 - Library: `qrcode` (Python) or `qrcodejs` (frontend)
-- Encode a short URL: `https://app.example.com/i/{entry_id}` or `https://app.example.com/i/{short_hash}`
-- Short hash option avoids exposing sequential IDs
+- Encode a short URL: `https://app.example.com/i/{short_hash}`
+- Short hash avoids exposing sequential IDs
 
 #### 4.4 Printer Integration
 
-- **Thermal label printers** (e.g. Brother QL-series, DYMO, Zebra) — common in logistics
+- **Thermal label printers** (e.g. Brother QL-series, DYMO, Zebra)
 - Connect via:
   - **Bluetooth** — mobile staff app sends print job directly
   - **USB** — desktop staff app prints via system print dialog
   - **Network** — shared printer at the station, API sends print job
-- Print format: QR code + human-readable text below (item type, ID, date, station)
+- Print format: QR code + human-readable text (item type, ID, date, station)
 - Label size: standard 62mm or 29mm thermal labels
 
 #### 4.5 Deliverables
@@ -308,21 +314,22 @@ Staff scans item → VLM detects → staff confirms & saves
 
 ## Tech Stack Summary
 
-| Component | Phase 1 (Local) | Phase 2 (Online) | Phase 3 (Split Apps) | Phase 4 (QR Labels) |
-|-----------|-----------------|-------------------|----------------------|---------------------|
-| Frontend | HTML/JS | HTML/JS | Staff: Tauri/Capacitor, Passenger: Capacitor/PWA | Same + scan views |
-| Backend | Python http.server | FastAPI | FastAPI + WebSockets | + QR generation endpoint |
-| Database | SQLite | PostgreSQL | PostgreSQL | + short URL hashes |
-| Images | On disk | S3 | S3 | S3 |
-| Vision LLM | Ollama (llava) | Cloud API | Cloud API | Cloud API |
-| Text LLM | Ollama (llama3.2) | Cloud API | Cloud API | Cloud API |
-| Auth | None | API keys | API keys (staff) + anonymous (passenger) | + public scan tokens |
+| Component | Phase 1 (Staff Local) | Phase 2 (Cloud Multi-User) | Phase 3 (Passenger Web) | Phase 4 (QR Labels) |
+|-----------|----------------------|---------------------------|------------------------|---------------------|
+| Staff Frontend | HTML/JS | HTML/JS | + Claims Queue | + QR scan/print |
+| Passenger Frontend | — | — | Responsive web app | + QR scan view |
+| Backend | Python http.server | FastAPI | Same | + QR generation |
+| Database | SQLite | PostgreSQL | Same | + short URL hashes |
+| Images | On disk | S3 | Same | Same |
+| Vision LLM | Ollama (llava) | Cloud API | — | — |
+| Text LLM | Ollama (llama3.2) | Cloud API | Cloud API | — |
+| Auth | None | Staff API keys | Anonymous | + public scan tokens |
 | Hardware | — | — | — | Thermal label printer |
-| Deployment | Local | AWS / Railway / Fly.io | Same + app stores | Same |
+| Deployment | Local | AWS / Railway | Vercel / Netlify | Same |
 
 ---
 
-## Running the Current Prototype
+## Running the Current Prototype (Phase 1)
 
 ```bash
 # Prerequisites
